@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
-import { Users, Calendar, BarChart3, TrendingUp } from "lucide-react";
+import { Users, Calendar, BarChart2 as BarChartIcon, TrendingUp } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import { mockCustomers, mockReservations } from "@/lib/mock-data";
 import { useAuth } from "@/hooks/useAuth";
@@ -76,7 +76,7 @@ export default function DashboardPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5" />
+                        <BarChartIcon className="h-5 w-5" />
                         Reservations Overview
                     </CardTitle>
                 </CardHeader>
