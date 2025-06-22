@@ -2,8 +2,11 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
-import { Users, Calendar, BarChart as BarChartIcon, Activity } from "lucide-react";
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
+import Users from 'lucide-react/dist/esm/icons/users';
+import Calendar from 'lucide-react/dist/esm/icons/calendar';
+import Activity from 'lucide-react/dist/esm/icons/activity';
+import BarChartIcon from 'lucide-react/dist/esm/icons/bar-chart';
+import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import { mockCustomers, mockReservations } from "@/lib/mock-data";
 import { useAuth } from "@/hooks/useAuth";
 import { useMemo } from "react";
@@ -82,7 +85,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent className="pl-2">
                     <ResponsiveContainer width="100%" height={350}>
-                        <BarChart data={reservationsData}>
+                        <RechartsBarChart data={reservationsData}>
                             <XAxis
                                 dataKey="name"
                                 stroke="#888888"
@@ -106,7 +109,7 @@ export default function DashboardPage() {
                                 }}
                             />
                             <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                        </BarChart>
+                        </RechartsBarChart>
                     </ResponsiveContainer>
                 </CardContent>
             </Card>
