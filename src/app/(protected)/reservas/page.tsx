@@ -48,7 +48,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 
 const reservationFormSchema = z.object({
-  customerId: z.string({ required_error: 'Please select a customer.' }),
+  customerId: z.string().min(1, 'Please select a customer.'),
   service: z.string().min(2, 'Service must be at least 2 characters.'),
   date: z.date({ required_error: 'A date is required.' }),
 });
@@ -61,6 +61,10 @@ export default function ReservasPage() {
 
   const form = useForm<z.infer<typeof reservationFormSchema>>({
     resolver: zodResolver(reservationFormSchema),
+    defaultValues: {
+      customerId: '',
+      service: '',
+    },
   });
 
   function onSubmit(values: z.infer<typeof reservationFormSchema>) {
@@ -113,7 +117,7 @@ export default function ReservasPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Customer</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select a customer" />
