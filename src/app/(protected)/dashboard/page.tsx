@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
-import { Users, Calendar, BarChart2 as BarChartIcon, TrendingUp } from "lucide-react";
+import { Users, Calendar, BarChart as BarChartIcon, Activity } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import { mockCustomers, mockReservations } from "@/lib/mock-data";
 import { useAuth } from "@/hooks/useAuth";
@@ -65,7 +65,7 @@ export default function DashboardPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Upcoming Reservations</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        <Activity className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">+{upcomingReservations}</div>
