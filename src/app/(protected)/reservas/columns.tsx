@@ -15,7 +15,14 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Checkbox } from "@/components/ui/checkbox"
+import { Table } from '@tanstack/react-table';
 
+// Extiende TableMeta para incluir onStatusChange
+declare module '@tanstack/react-table' {
+  interface TableMeta<TData extends unknown> {
+    onStatusChange?: (id: string, status: string) => void;
+  }
+}
 
 export const columns: ColumnDef<Reservation>[] = [
   {
@@ -41,19 +48,39 @@ export const columns: ColumnDef<Reservation>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: 'customerName',
     header: 'Customer',
+    accessorFn: (row) => row.customerName || row.cliente_nombre || '',
+    id: 'customer',
   },
   {
-    accessorKey: 'service',
     header: 'Service',
+    accessorFn: (row) => row.service || row.servicio || '',
+    id: 'service',
   },
   {
     accessorKey: 'date',
     header: 'Date',
     cell: ({ row }) => {
-      const date = new Date(row.getValue('date'));
-      return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      // Soporta tanto 'date' como 'fecha' y previene 'Invalid Date'
+      const raw = row.getValue('date') || row.original.fecha;
+      if (!raw) return '';
+      // Si raw es un objeto, intenta extraer la propiedad correcta
+      const dateValue =
+        typeof raw === 'string' || typeof raw === 'number' || raw instanceof Date
+          ? raw
+          : typeof raw === 'object' && raw !== null && 'toISOString' in raw
+            ? (raw as Date).toISOString()
+            : '';
+      const date = new Date(dateValue);
+      return isNaN(date.getTime())
+        ? ''
+        : date.toLocaleDateString('es-PY', {
+            timeZone: 'America/Asuncion',
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          });
     },
   },
   {
@@ -76,7 +103,7 @@ export const columns: ColumnDef<Reservation>[] = [
   },
   {
     id: 'actions',
-    cell: ({ row }) => {
+    cell: ({ row, table }) => {
       const reservation = row.original;
       return (
         <DropdownMenu>
@@ -94,8 +121,55 @@ export const columns: ColumnDef<Reservation>[] = [
               Copy reservation ID
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Mark as confirmed</DropdownMenuItem>
-            <DropdownMenuItem>Mark as cancelled</DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={async () => {
+                const res = await fetch(`http://127.0.0.1:8000/reservas/${reservation.id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ ...reservation, status: 'confirmed' }),
+                });
+                if (res.ok) {
+                  window.location.reload(); // Recarga la página para reflejar el cambio
+                  // Actualiza el estado de la reserva en la tabla
+                  table.setRowSelection((prev) => ({
+                    ...prev,
+                    [row.id]: true,
+                  }));
+                  // Llama a la función onStatusChange si está definida
+                  if (typeof table.options.meta?.onStatusChange === 'function') {
+                    table.options.meta.onStatusChange(reservation.id, 'confirmed');
+                  }
+                } else {
+                  alert('Error al actualizar la reserva');
+                }
+              }}
+            >
+              Mark as confirmed
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={async () => {
+                const res = await fetch(`http://127.0.0.1:8000/reservas/${reservation.id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ ...reservation, status: 'cancelled' }),
+                });
+                if (res.ok) {
+                  window.location.reload();
+                  // Actualiza el estado de la reserva en la tabla
+                  table.setRowSelection((prev) => ({
+                    ...prev,
+                    [row.id]: true,
+                  }));
+                  if (typeof table.options.meta?.onStatusChange === 'function') {
+                    table.options.meta.onStatusChange(reservation.id, 'cancelled');
+                  }
+                } else {
+                  alert('Error al actualizar la reserva');
+                }
+              }}
+            >
+              Mark as cancelled
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );

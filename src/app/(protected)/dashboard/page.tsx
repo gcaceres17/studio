@@ -2,19 +2,26 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
-import Users from 'lucide-react/dist/esm/icons/users';
-import Calendar from 'lucide-react/dist/esm/icons/calendar';
-import Activity from 'lucide-react/dist/esm/icons/activity';
-import BarChartIcon from 'lucide-react/dist/esm/icons/bar-chart';
+import { Users, Calendar, Activity, BarChart as BarChartIcon } from 'lucide-react';
 import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
-import { mockCustomers, mockReservations } from "@/lib/mock-data";
 import { useAuth } from "@/hooks/useAuth";
-import { useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 
 export default function DashboardPage() {
     const { user } = useAuth();
-    
+    const [customers, setCustomers] = useState([]);
+    const [reservations, setReservations] = useState([]);
+
+    useEffect(() => {
+        fetch("http://127.0.0.1:8000/clientes")
+            .then(res => res.json())
+            .then(data => setCustomers(data));
+        fetch("http://127.0.0.1:8000/reservas")
+            .then(res => res.json())
+            .then(data => setReservations(data));
+    }, []);
+
     const reservationsData = useMemo(() => {
         const data: { [key: string]: number } = {};
         for (let i = 6; i >= 0; i--) {
@@ -23,20 +30,21 @@ export default function DashboardPage() {
             const formattedDate = format(date, 'MMM dd');
             data[formattedDate] = 0;
         }
-
-        mockReservations.forEach(res => {
-            const formattedDate = format(res.date, 'MMM dd');
-            if(data.hasOwnProperty(formattedDate)) {
+        reservations.forEach((res: any) => {
+            // Usar res.fecha o res.date según el campo disponible
+            const fecha = res.fecha || res.date;
+            if (!fecha) return;
+            const formattedDate = format(new Date(fecha), 'MMM dd');
+            if (data.hasOwnProperty(formattedDate)) {
                 data[formattedDate]++;
             }
         });
-
         return Object.keys(data).map(key => ({ name: key, total: data[key] }));
-    }, []);
-    
-    const totalCustomers = mockCustomers.length;
-    const totalReservations = mockReservations.length;
-    const upcomingReservations = mockReservations.filter(r => r.date > new Date() && r.status === 'confirmed').length;
+    }, [reservations]);
+
+    const totalCustomers = customers.length;
+    const totalReservations = reservations.length;
+    const upcomingReservations = reservations.filter((r: any) => new Date(r.fecha) > new Date() && r.status === 'confirmed').length;
 
     return (
         <div className="flex-1 space-y-4 p-8 pt-6">

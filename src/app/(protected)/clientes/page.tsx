@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PlusCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/page-header';
 import { DataTable } from './data-table';
 import { columns } from './columns';
 import { mockCustomers } from '@/lib/mock-data';
-import type { Customer } from '@/types';
+import type { Customer } from './columns';
 import {
   Dialog,
   DialogContent,
@@ -37,12 +37,20 @@ const customerFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email('Please enter a valid email.'),
   phone: z.string().min(10, 'Phone number must be at least 10 digits.'),
+  direccion: z.string().optional(),
 });
 
 export default function ClientesPage() {
-  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
+
+  // Cargar clientes desde el backend
+  useEffect(() => {
+    fetch('http://127.0.0.1:8000/clientes')
+      .then((res) => res.json())
+      .then((data) => setCustomers(data));
+  }, []);
 
   const form = useForm<z.infer<typeof customerFormSchema>>({
     resolver: zodResolver(customerFormSchema),
@@ -50,22 +58,47 @@ export default function ClientesPage() {
       name: '',
       email: '',
       phone: '',
+      direccion: '',
     },
   });
 
-  function onSubmit(values: z.infer<typeof customerFormSchema>) {
-    const newCustomer: Customer = {
-      id: (customers.length + 1).toString(),
-      createdAt: new Date(),
-      ...values,
+  async function onSubmit(values: z.infer<typeof customerFormSchema>) {
+    const clienteConId = {
+      id: '',
+      nombre: values.name,
+      email: values.email,
+      telefono: values.phone,
+      direccion: values.direccion || '',
+      createdAt: new Date().toISOString(),
     };
-    setCustomers([newCustomer, ...customers]);
-    toast({
-      title: 'Success!',
-      description: 'New customer has been added.',
+    const response = await fetch('http://127.0.0.1:8000/clientes/auto', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(clienteConId),
     });
-    setOpen(false);
-    form.reset();
+
+    let result;
+    try {
+      result = await response.json();
+    } catch {
+      result = null;
+    }
+
+    if (response.ok) {
+      setCustomers([result, ...customers]);
+      toast({
+        title: 'Success!',
+        description: 'New customer has been added.',
+      });
+      setOpen(false);
+      form.reset();
+    } else {
+      toast({
+        title: 'Error',
+        description: result?.detail || 'No se pudo agregar el cliente.',
+        variant: 'destructive',
+      });
+    }
   }
 
   return (
@@ -127,6 +160,19 @@ export default function ClientesPage() {
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
                           <Input placeholder="(123) 456-7890" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="direccion"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Dirección</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Dirección del cliente" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

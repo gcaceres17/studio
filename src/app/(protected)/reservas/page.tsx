@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PlusCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -54,10 +54,20 @@ const reservationFormSchema = z.object({
 });
 
 export default function ReservasPage() {
-  const [reservations, setReservations] = useState<Reservation[]>(mockReservations);
-  const [customers] = useState<Customer[]>(mockCustomers);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
+
+  // Cargar datos desde el backend
+  useEffect(() => {
+    fetch('http://127.0.0.1:8000/clientes')
+      .then(res => res.json())
+      .then(data => setCustomers(data));
+    fetch('http://127.0.0.1:8000/reservas')
+      .then(res => res.json())
+      .then(data => setReservations(data));
+  }, []);
 
   const form = useForm<z.infer<typeof reservationFormSchema>>({
     resolver: zodResolver(reservationFormSchema),
@@ -67,23 +77,39 @@ export default function ReservasPage() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof reservationFormSchema>) {
+  async function onSubmit(values: z.infer<typeof reservationFormSchema>) {
     const customer = customers.find(c => c.id === values.customerId);
     if (!customer) return;
 
-    const newReservation: Reservation = {
-      id: `res${reservations.length + 1}`,
-      customerName: customer.name,
+    const newReservation = {
+      id: '',
+      cliente_id: customer.id,
+      cliente_nombre: customer.nombre || customer.name,
+      servicio: values.service,
+      fecha: values.date.toISOString(), // <-- aquí el cambio
       status: 'pending',
-      ...values,
     };
-    setReservations([newReservation, ...reservations]);
-    toast({
-      title: 'Success!',
-      description: 'New reservation has been created.',
+    const response = await fetch('http://127.0.0.1:8000/reservas/auto', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newReservation),
     });
-    setOpen(false);
-    form.reset();
+    if (response.ok) {
+      const created = await response.json();
+      setReservations([created, ...reservations]);
+      toast({
+        title: 'Success!',
+        description: 'New reservation has been created.',
+      });
+      setOpen(false);
+      form.reset();
+    } else {
+      toast({
+        title: 'Error',
+        description: 'No se pudo crear la reserva.',
+        variant: 'destructive',
+      });
+    }
   }
 
   return (
@@ -125,7 +151,9 @@ export default function ReservasPage() {
                           </FormControl>
                           <SelectContent>
                             {customers.map(c => (
-                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                              <SelectItem key={c.id} value={c.id}>
+                              {c.nombre ? c.nombre : <span>No Name</span>}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
